@@ -338,10 +338,11 @@ class Scene(object):
                 'No waypoints were found.', self.task)
 
         demo = []
+        gripper_open = 1.0 if self.robot.gripper.get_open_amount()[0] > 0.9 else 0.0
+
         if record:
             self.pyrep.step()  # Need this here or get_force doesn't work...
             self._joint_position_action = None
-            gripper_open = 1.0 if self.robot.gripper.get_open_amount()[0] > 0.9 else 0.0
             demo.append(self.get_observation())
         while True:
             success = False
