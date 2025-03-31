@@ -47,7 +47,7 @@ class ObservationConfig(object):
                  joint_forces_noise: NoiseModel=Identity(),
                  gripper_open=True,
                  gripper_pose=True,
-                 gripper_matrix=False,
+                 gripper_matrix=True,
                  gripper_joint_positions=False,
                  gripper_touch_forces=False,
                  wrist_camera_matrix=False,

@@ -1,3 +1,5 @@
+from rlbench.tasks.reach_blue_block import ReachBlueBlock
+from rlbench.tasks.reach_red_block import ReachRedBlock
 from rlbench.tasks.basketball_in_hoop import BasketballInHoop
 from rlbench.tasks.beat_the_buzz import BeatTheBuzz
 from rlbench.tasks.block_pyramid import BlockPyramid

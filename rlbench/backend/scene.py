@@ -310,7 +310,6 @@ class Scene(object):
             misc=self._get_misc())
         obs = self.task.decorate_observation(obs)
         return obs
-
     def step(self):
         self.pyrep.step()
         self.task.step()
