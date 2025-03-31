@@ -1,0 +1,90 @@
+RL BENCH tuto
+
+export the folowing
+
+export COPPELIASIM_ROOT=${HOME}/CoppeliaSim
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$COPPELIASIM_ROOT
+export QT_QPA_PLATFORM_PLUGIN_PATH=$COPPELIASIM_ROOT
+export LD_LIBRARY_PATH=$COPPELIASIM_ROOT:$LD_LIBRARY_PATH
+
+
+cd /home/olagh48652/RLBench/tools
+
+then run to build an environment
+python3 task_builder.py 
+
+
+What task would you like to edit?
+
+put name of task without .py like so
+reach_blue_block
+
+in scene object pro in common set rendabreableto true
+add the task to the __init__.py file in tasks folder in RLBench
+from rlbench.tasks.reach_blue_block import ReachBlueBlock
+from rlbench.tasks.reach_red_block import ReachRedBlock
+
+need to reinstall  =when changes made  if installed without -e
+
+to generate a dataset 
+run:
+python3 dataset_generator.py --save_path /home/olagh48652/RLBench/dataset --tasks "reach_blue_block" --variations 50 --episodes_per_task 50
+in RLBench/rlbench 
+
+python3 dataset_generator.py --save_path /home/olagh48652/RLBench/dataset --tasks "reach_blue_block" "reach_red_block" --variations 50 --episodes_per_task 50
+
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="RLBench Dataset Generator")
+    parser.add_argument('--save_path', type=str, default='/tmp/rlbench_data/', help='Where to save the demos.')
+    parser.add_argument('--tasks', nargs='*', default=[], help='The tasks to collect. If empty, all tasks are collected.')
+    parser.add_argument('--image_size', nargs=2, type=int, default=[128, 128], help='The size of the images to save.')
+    parser.add_argument('--renderer', type=str, choices=['opengl', 'opengl3'], default='opengl3', help='The renderer to use. opengl does not include shadows, but is faster.')
+    parser.add_argument('--processes', type=int, default=1, help='The number of parallel processes during collection.')
+    parser.add_argument('--episodes_per_task', type=int, default=10, help='The number of episodes to collect per task.')
+    parser.add_argument('--variations', type=int, default=-1, help='Number of variations to collect per task. -1 for all.')
+    parser.add_argument('--arm_max_velocity', type=float, default=1.0, help='Max arm velocity used for motion planning.')
+    parser.add_argument('--arm_max_acceleration', type=float, default=4.0, help='Max arm acceleration used for motion planning.')
+    return parser.parse_args()
+
+
+panda_tip
+-1.8000e+02
++1.3999e+01
+-1.8000e+02
+
+xyz init loc
++2.7810e-01
+-8.1704e-03
++1.4732e+00
+
+reach_red_block
+
+red block coord
++3.2500e-01
++3.5000e-01
++8.2000e-01
+ori 0
+
+
+bleu 
++3.2500e-01
+-1.7500e-01
++8.200e-01
+
+
+todo:
+slightly chnage location and orintation of blocks 
+collect dataset of 40 each task 
+hdf5 and train diff policy rollout ot see whihc one gets picked up
+
+troubleshoot: 
+Warning: Ignoring XDG_SESSION_TYPE=wayland on Gnome. Use QT_QPA_PLATFORM=wayland to run on Wayland anyway.
+qt.qpa.plugin: Could not find the Qt platform plugin "wayland" in "/home/olagh48652/.local/lib/python3.10/site-packages/cv2/qt/plugins"
+This application failed to start because no Qt platform plugin could be initialized. Reinstalling the application may fix this problem.
+
+solution:
+pip uninstall opencv-python
+pip install opencv-python-headless
+

@@ -1,3 +1,10 @@
+# checkpoints and hdf5
+dataset_new/epoch_100.ckpt
+dataset_new/*.hdf5
+dataset_new/*.zarr.zip
+dataset_new/*.zarr.zip.lock
+dataset_new/reach*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
