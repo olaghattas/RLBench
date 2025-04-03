@@ -11,11 +11,11 @@ import cv2
 # -------------------------------
 # Diffusion Policy Imports
 # -------------------------------
-sys.path.append("/home/olagh48652/policy_training/diffusion_policy")
+sys.path.append("/home/olagh/policy_training/diffusion_policy")
 from diffusion_policy.workspace.train_diffusion_unet_hybrid_workspace import TrainDiffusionUnetHybridWorkspace
 from diffusion_policy.model.common.rotation_transformer import RotationTransformer
 from diffusion_policy.common.pytorch_util import dict_apply
-
+from scipy.spatial.transform import Rotation
 
 # -------------------------------
 # Helper Functions
@@ -154,33 +154,62 @@ def get_current_obs(current_obs):
 
 # transforms first to second
 rotation_transformer = RotationTransformer('axis_angle', 'rotation_6d')
-rotation_transformer_quat = RotationTransformer('axis_angle', 'quaternion')
 def undo_transform_action(action):
+    # The action is guaranteed to have shape 10
     raw_shape = action.shape
+    print(raw_shape)
+    # Extract components of the action: position, rotation (axis-angle), and gripper state
+    pos = action[..., :3]  # Position: first 3 elements
+    rot_6d = action[..., 3:9]  # Rotation: next 3 elements (axis-angle)
+    gripper = action[..., -1:]  # Gripper state: last element
+    print(f"rot 6d {rot_6d}")
+    # Undo the transformation for the rotation
     
-    ## this is when a policy is raiend for two robots
-    if raw_shape[-1] == 20:
-        action = action.reshape(-1, 2, 10)
-        
-    d_rot = action.shape[-1] - 4
-    pos = action[..., :3]
-    rot = action[..., 3:3+d_rot]
+    rot = rotation_transformer.inverse(rot_6d)  # Inverse transformation from 'rotation_6d' back to 'axis_angle'
     
-    gripper = action[..., -1:]
+    print(f"rot: {rot}")
+    rot = rot.squeeze() 
+    print(f"rot: {rot}")
     
-    rot = rotation_transformer.inverse(rot)
-    quat = rotation_transformer_quat.transform(rot)
+    # Convert the axis-angle rotation to a quaternion
+    quat = Rotation.from_rotvec(rot).as_quat()  # [x, y, z, w]
+    print(f"quat: {quat.shape}, {quat}")   
+    # Concatenate position, quaternion, and gripper states
+    quat = np.expand_dims(quat, axis=0) 
+    print(f"quat: {quat.shape}, {quat}") 
     uaction = np.concatenate([pos, quat, gripper], axis=-1)
-    if raw_shape[-1] == 20:
-        uaction = uaction.reshape(*raw_shape[:-1], 14)
+
+    print(f"uaction: {uaction.shape}, {uaction}")
+
     return uaction
+
+# def undo_transform_action(action):
+#     raw_shape = action.shape
+    
+#     ## this is when a policy is raiend for two robots
+#     if raw_shape[-1] == 20:
+#         action = action.reshape(-1, 2, 10)
+        
+#     d_rot = action.shape[-1] - 4
+#     pos = action[..., :3]
+#     rot = action[..., 3:3+d_rot]
+    
+#     gripper = action[..., -1:]
+    
+#     rot = rotation_transformer.inverse(rot)
+#     quat = Rotation.from_rotvec(rot).as_quat()  # [x, y, z, w]
+#     uaction = np.concatenate([pos, quat, gripper], axis=-1)
+#     print(f"uaction: {uaction}")
+#     if raw_shape[-1] == 20:
+#         uaction = uaction.reshape(*raw_shape[:-1], 14)
+#     return uaction
 
 
 # -------------------------------
 # Set device
 # -------------------------------
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = torch.device("cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#device = torch.device("cpu")
 print("Using device:", device)
 
 
@@ -191,7 +220,7 @@ print("-"*40)
 print(" Loading Checkpoint ")
 print("-"*40)
 
-checkpoint = "/home/olagh48652/RLBench/dataset_new/epoch_100.ckpt"
+checkpoint = "/home/olagh/RLBench/dataset_new/epoch_100.ckpt"
 with open(checkpoint, 'rb') as f:
     payload = torch.load(f, pickle_module=dill)
 cfg = payload['cfg']
@@ -288,36 +317,40 @@ done = False
 success = False
 step = 0
 
-while not done and step < max_steps:
-    # Prepare the observation dictionary for the policy.
-    if obs_env is None:
-        obs_env, reward, terminate = task.step(action)
-        print("@"*20)
-        print("obs_env is None! Retrying...")
-    else:
-        np_obs_dict = {key: obs[key][None, :] for key in keys_select if key in obs}
-        obs_tensor = dict_apply(np_obs_dict, lambda x: torch.from_numpy(x).to(device))
-        
-        with torch.no_grad():
-            action_dict = policy.predict_action(obs_tensor)
-            
-        np_action_dict = dict_apply(action_dict, lambda x: x.detach().cpu().numpy())
-        
-        env_action = np_action_dict['action']
-        env_action = undo_transform_action(env_action)
-        env_action = env_action.squeeze()
-
-        # adjust slicing as required by your controller
-        for action in env_action[:4]: 
-            # Send control command to the robot.
+with open('actions.txt', 'w') as file:
+    while not done and step < max_steps:
+        # Prepare the observation dictionary for the policy.
+        if obs_env is None:
             obs_env, reward, terminate = task.step(action)
-            obs = get_current_obs(obs_env)
-            obs = framestacker.add_new_obs(obs)
+            print("@"*20)
+            print("obs_env is None! Retrying...")
+        else:
+            np_obs_dict = {key: obs[key][None, :] for key in keys_select if key in obs}
+            obs_tensor = dict_apply(np_obs_dict, lambda x: torch.from_numpy(x).to(device))
+            
+            with torch.no_grad():
+                action_dict = policy.predict_action(obs_tensor)
+                
+            np_action_dict = dict_apply(action_dict, lambda x: x.detach().cpu().numpy())
+            
+            env_action = np_action_dict['action']
+            env_action = undo_transform_action(env_action)
+            env_action = env_action.squeeze()
 
-        step += 1
-        # A simple termination condition: you can add your own task success logic.
-        if step >= max_steps:
-            done = True
+            # adjust slicing as required by your controller
+            for action in env_action[:4]: 
+                # Send control command to the robot.
+                obs_env, reward, terminate = task.step(action)
+                obs = get_current_obs(obs_env)
+                obs = framestacker.add_new_obs(obs)
+                file.write(str(action) + '\n')  # Writing each action on a new line
+                success = task._task.success()
+                print("Success:", success)
+                
+            step += 1
+            # A simple termination condition: you can add your own task success logic.
+            if step >= max_steps:
+                done = True
 
 
 print('Done')
