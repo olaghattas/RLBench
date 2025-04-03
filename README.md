@@ -81,9 +81,20 @@ To install the RLBench python package:
 ```bash
 pip install git+https://github.com/stepjam/RLBench.git
 ```
+or to install in editable mode
+
+```bash
+pip install git+https://github.com/olaghattas/RLBench.git
+cd RLBench
+pip install -e .
+```
 
 And that's it!
 
+to check if installation worked run
+```bash
+python3 -c "import rlbench; print(rlbench.__file__)"
+```
 ## Running Headless
 
 If you are running on a machine without display (i.e. Cloud VMs, compute clusters),
