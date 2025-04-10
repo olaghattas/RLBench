@@ -221,6 +221,8 @@ print(" Loading Checkpoint ")
 print("-"*40)
 
 checkpoint = "/home/olagh/RLBench/dataset_new/epoch_100.ckpt"
+
+# checkpoint = "/home/olagh/after_train_600_epochs.ckpt"
 with open(checkpoint, 'rb') as f:
     payload = torch.load(f, pickle_module=dill)
 cfg = payload['cfg']
@@ -346,6 +348,8 @@ with open('actions.txt', 'w') as file:
                 file.write(str(action) + '\n')  # Writing each action on a new line
                 success = task._task.success()
                 print("Success:", success)
+                if success:
+                    done = True
                 
             step += 1
             # A simple termination condition: you can add your own task success logic.
