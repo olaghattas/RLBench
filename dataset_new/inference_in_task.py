@@ -41,12 +41,14 @@ for i in range(training_steps):
 
     # Apply action
     obs, reward, terminate = task.step(action)
+
     # Check success condition
     if any(cond.condition_met() for cond in task.success_conditions):
         print("Success condition met!")
         break
 
-#
+
+print(done)
 print('Done')
 env.shutdown()
 

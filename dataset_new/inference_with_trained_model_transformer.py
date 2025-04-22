@@ -7,12 +7,14 @@ import dill
 import numpy as np
 import collections
 import cv2
+import pyrep
+import rlbench
 
 # -------------------------------
 # Diffusion Policy Imports
 # -------------------------------
 sys.path.append("/home/olagh/policy_training/diffusion_policy")
-from diffusion_policy.workspace.train_diffusion_unet_hybrid_workspace import TrainDiffusionUnetHybridWorkspace
+from diffusion_policy.workspace.train_diffusion_transformer_lang_hybrid_workspace import TrainDiffusionTransformerLangHybridWorkspace
 from diffusion_policy.model.common.rotation_transformer import RotationTransformer
 from diffusion_policy.common.pytorch_util import dict_apply
 from scipy.spatial.transform import Rotation
@@ -167,43 +169,27 @@ def undo_transform_action(action):
     
     rot = rotation_transformer.inverse(rot_6d)  # Inverse transformation from 'rotation_6d' back to 'axis_angle'
     
-    print(f"rot: {rot}")
-    rot = rot.squeeze() 
-    print(f"rot: {rot}")
+    print(f"rot before squeeze: {rot}")
+    rot_sq = rot.squeeze() 
+    print(f"rot after squeeze: {rot}")
     
+    uaction_axis_angle = np.concatenate([pos, rot, gripper], axis=-1)
     # Convert the axis-angle rotation to a quaternion
-    quat = Rotation.from_rotvec(rot).as_quat()  # [x, y, z, w]
+    quat = Rotation.from_rotvec(rot_sq).as_quat()  # [x, y, z, w]
     print(f"quat: {quat.shape}, {quat}")   
+    # row = [0, 0, 0, 0]
+    # row = [4.86287099e-05, 9.98295665e-01, 1.12050424e-04, 5.83590195e-02]
+
+    # quat_ = np.tile(row, (1, 8, 1))
+
     # Concatenate position, quaternion, and gripper states
     quat = np.expand_dims(quat, axis=0) 
     print(f"quat: {quat.shape}, {quat}") 
-    uaction = np.concatenate([pos, quat, gripper], axis=-1)
+    uaction_quat = np.concatenate([pos, quat, gripper], axis=-1)
 
-    print(f"uaction: {uaction.shape}, {uaction}")
+    print(f"uaction: {uaction_quat.shape}, {uaction_quat}")
 
-    return uaction
-
-# def undo_transform_action(action):
-#     raw_shape = action.shape
-    
-#     ## this is when a policy is raiend for two robots
-#     if raw_shape[-1] == 20:
-#         action = action.reshape(-1, 2, 10)
-        
-#     d_rot = action.shape[-1] - 4
-#     pos = action[..., :3]
-#     rot = action[..., 3:3+d_rot]
-    
-#     gripper = action[..., -1:]
-    
-#     rot = rotation_transformer.inverse(rot)
-#     quat = Rotation.from_rotvec(rot).as_quat()  # [x, y, z, w]
-#     uaction = np.concatenate([pos, quat, gripper], axis=-1)
-#     print(f"uaction: {uaction}")
-#     if raw_shape[-1] == 20:
-#         uaction = uaction.reshape(*raw_shape[:-1], 14)
-#     return uaction
-
+    return uaction_quat, uaction_axis_angle
 
 # -------------------------------
 # Set device
@@ -220,7 +206,9 @@ print("-"*40)
 print(" Loading Checkpoint ")
 print("-"*40)
 
-checkpoint = "/home/olagh/RLBench/dataset_new/epoch_100.ckpt"
+# checkpoint = "/home/olagh/RLBench/dataset_new/epoch_100.ckpt"
+checkpoint = "/home/olagh/policy_training/diffusion_policy/diffusion_policy/data/outputs/training_with_no_lang_2layer_transformer_encoder/checkpoints/after_train_600_epochs.ckpt"
+
 
 # checkpoint = "/home/olagh/after_train_600_epochs.ckpt"
 with open(checkpoint, 'rb') as f:
@@ -228,7 +216,7 @@ with open(checkpoint, 'rb') as f:
 cfg = payload['cfg']
 
 
-workspace = TrainDiffusionUnetHybridWorkspace(cfg, output_dir=None)
+workspace = TrainDiffusionTransformerLangHybridWorkspace(cfg, output_dir=None)
 
 workspace.load_payload(payload, exclude_keys=None, include_keys=None)
 
@@ -246,7 +234,7 @@ print("Diffusion policy loaded and set to eval mode.")
 # -------------------------------
 n_obs_steps = getattr(cfg, "dataset_obs_steps", 2)
 n_action_steps = getattr(cfg, "n_action_steps", 4)
-max_steps = 100   # maximum steps per trial
+max_steps = 50   # maximum steps per trial
 
 print("Starting trial ")
 
@@ -259,14 +247,8 @@ from rlbench.action_modes.action_mode import MoveArmThenGripper
 from rlbench.action_modes.arm_action_modes import EndEffectorPoseViaPlanning
 from rlbench.action_modes.gripper_action_modes import Discrete
 from rlbench.environment import Environment
-from rlbench.tasks import ReachBlueBlock
+from rlbench.tasks import ReachBlueBlock, ReachRedBlock
 from scipy.spatial.transform import Rotation as R
-
-from pyrep.objects.shape import Shape
-from pyrep.objects.proximity_sensor import ProximitySensor
-from rlbench.backend.task import Task
-from rlbench.backend.conditions import DetectedCondition
-
 
 headless_val = False
 obs_config = ObservationConfig()
@@ -297,7 +279,7 @@ env = Environment(action_mode=action_mode,
                     )
 env.launch()
 
-task = env.get_task(ReachBlueBlock)
+task = env.get_task(ReachRedBlock)
 descriptions, obs_env = task.reset()
 
 
@@ -319,49 +301,81 @@ if obs_env is not None:
     obs = framestacker.reset(obs)
 
 
-    
-
 done = False
 success = False
 step = 0
-
+quat_trajectory = []
+rot_trajectory = []
+success_count = 0 
 with open('actions.txt', 'w') as file:
-    while not done and step < max_steps:
-        # Prepare the observation dictionary for the policy.
-        if obs_env is None:
-            obs_env, reward, terminate = task.step(action)
-            print("@"*20)
-            print("obs_env is None! Retrying...")
-        else:
-            np_obs_dict = {key: obs[key][None, :] for key in keys_select if key in obs}
-            obs_tensor = dict_apply(np_obs_dict, lambda x: torch.from_numpy(x).to(device))
-            
-            with torch.no_grad():
-                action_dict = policy.predict_action(obs_tensor)
-                
-            np_action_dict = dict_apply(action_dict, lambda x: x.detach().cpu().numpy())
-            
-            env_action = np_action_dict['action']
-            env_action = undo_transform_action(env_action)
-            env_action = env_action.squeeze()
-
-            # adjust slicing as required by your controller
-            for action in env_action[:4]: 
-                # Send control command to the robot.
+    print("done: ", done, " step: " ,step, " max_steps: ", max_steps)
+    for trial in range(50):
+        print("*"*40)
+        print("TRIAL", trial)
+        done = 0
+        while not done:
+            # Prepare the observation dictionary for the policy.
+            if obs_env is None:
                 obs_env, reward, terminate = task.step(action)
-                obs = get_current_obs(obs_env)
-                obs = framestacker.add_new_obs(obs)
-                file.write(str(action) + '\n')  # Writing each action on a new line
-                success = task._task.success()
-                print("Success:", success)
-                if success:
-                    done = True
+                print("@"*20)
+                print("obs_env is None! Retrying...")
+            else:
+                np_obs_dict = {key: obs[key][None, :] for key in keys_select if key in obs}
+                obs_tensor = dict_apply(np_obs_dict, lambda x: torch.from_numpy(x).to(device))
                 
-            step += 1
-            # A simple termination condition: you can add your own task success logic.
-            if step >= max_steps:
-                done = True
+                with torch.no_grad():
+                    action_dict = policy.predict_action(obs_tensor)
+                    
+                np_action_dict = dict_apply(action_dict, lambda x: x.detach().cpu().numpy())
+                
+                env_action = np_action_dict['action']
+                print("env_action: ",env_action)
+                print("env_action shape: ", type(env_action))
 
+                env_action, env_action_rot = undo_transform_action(env_action)
+                env_action = env_action.squeeze()
+                env_action_rot = env_action_rot.squeeze()
+                # quat_trajectory.append(env_action[:2])
+                # rot_trajectory.append(env_action_rot[:2])
 
+                # adjust slicing as required by your controller
+                for action in env_action[:2]: 
+                    # Send control command to the robot.
+                    # obs_env, reward, terminate = task.step(action)
+                    
+                    try:
+                        # Attempt to perform the action
+                        obs_env, reward, terminate = task.step(action)
+                    except (pyrep.errors.ConfigurationPathError, rlbench.backend.exceptions.InvalidActionError) as e:
+                        # Catch specific errors and handle them
+                        print(f"Error encountered: {e}")
+                        
+                        # Reset the environment after the error
+                        descriptions, obs_env = task.reset()
+                        print("Environment reset due to an error.")
+                        
+                        # Optionally, you can handle any additional recovery or retry logic here.
+                        done = True  # or any other flag that controls the loop
+    
+                    obs = get_current_obs(obs_env)
+                    obs = framestacker.add_new_obs(obs)
+                    file.write(str(action) + '\n')  # Writing each action on a new line
+                    success = task._task.success()
+                    print("Success:", success)
+                    if any(success):
+                        print("sucsess")
+                        done = True
+                        descriptions, obs_env = task.reset()
+                        success_count +=1
+                    
+                step += 1
+                if step >= max_steps:
+                    done = True
+                    descriptions, obs_env = task.reset()
+                # np.save(f"test_quat_trajectory_{trial}.npy", np.array(quat_trajectory))
+                # np.save(f"test_rot_trajectory_{trial}.npy", np.array(rot_trajectory))
+    
+
+print("sucsess_count", success_count)
 print('Done')
 env.shutdown()

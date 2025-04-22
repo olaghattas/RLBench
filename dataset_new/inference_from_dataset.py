@@ -11,6 +11,7 @@ import pickle
 import pandas as pd
 
 file_path_ = "/home/olagh48652/RLBench/dataset_new/reach_red_block_5/variation0/episodes/episode0/low_dim_obs.pkl"
+
 with open(file_path_, 'rb') as file:
     data = pickle.load(file)
 
@@ -35,12 +36,20 @@ action_mode = MoveArmThenGripper(
 )
 env = Environment(action_mode=action_mode,
                   obs_config=obs_config,
-                 headless=headless_val
-                    )
+                  headless=headless_val
+                )
 env.launch()
 
 task = env.get_task(ReachBlueBlock)
+print(dir(ReachBlueBlock))
+print(dir(task))
+# Check if the success conditions are met
+# success = ReachBlueBlock.check_success()
 
+task_ = task._task
+success = task_.success()
+# Print the result
+print("Success:", success)
 descriptions, obs = task.reset()
 # List to collect all gripper poses
 pose_data = []
@@ -49,6 +58,7 @@ pose_data = []
 for obs_ in data._observations:
     # Extract the gripper matrix (it is a 4x4 matrix) column major
     # print(f"Available attributes in obs: {dir(obs)}")
+
     print("gripper_pose", obs_.gripper_pose)
     # Append the pose as a list of values
     pose_data.append(obs_.gripper_pose)
@@ -57,6 +67,15 @@ for obs_ in data._observations:
     gripper_action = 1
     action = np.concatenate([obs_.gripper_pose, [gripper_action]])
     obs, reward, terminate = task.step(action)
+    success = task_.success()
+    print("Success:", success)
+    # for condition in ReachBlueBlock.success_conditions:
+    #     print("Success condition not met")
+    #     if condition.condition_met():
+    #         print("Success condition met! Task completed.")
+    #         done = True
+
+
 
 # Create DataFrame from all poses
 df = pd.DataFrame(pose_data, columns=[f'pose_{i}' for i in range(len(pose_data[0]))])
@@ -64,5 +83,6 @@ df = pd.DataFrame(pose_data, columns=[f'pose_{i}' for i in range(len(pose_data[0
 
 # Save to Excel
 df.to_excel('gripper_pose.xlsx', index=False)
+
 print('Done')
 env.shutdown()

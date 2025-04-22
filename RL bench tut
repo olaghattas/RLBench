@@ -94,3 +94,4 @@ solution:
 pip uninstall opencv-python
 pip install opencv-python-headless
 
+conda activate robodiff

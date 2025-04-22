@@ -12,7 +12,7 @@ import cv2
 # Diffusion Policy Imports
 # -------------------------------
 sys.path.append("/home/olagh/policy_training/diffusion_policy")
-from diffusion_policy.workspace.train_diffusion_unet_hybrid_workspace import TrainDiffusionUnetHybridWorkspace
+from diffusion_policy.workspace.train_diffusion_transformer_hybrid_workspace import TrainDiffusionTransformerHybridWorkspace
 from diffusion_policy.model.common.rotation_transformer import RotationTransformer
 from diffusion_policy.common.pytorch_util import dict_apply
 from scipy.spatial.transform import Rotation
@@ -220,7 +220,9 @@ print("-"*40)
 print(" Loading Checkpoint ")
 print("-"*40)
 
-checkpoint = "/home/olagh/RLBench/dataset_new/epoch_100.ckpt"
+# checkpoint = "/home/olagh/RLBench/dataset_new/epoch_100.ckpt"
+checkpoint = "/home/olagh/policy_training/diffusion_policy/diffusion_policy/data/outputs/training_with_no_lang_2layer_transformer_encoder/checkpoints/after_train_600_epochs.ckpt"
+
 
 # checkpoint = "/home/olagh/after_train_600_epochs.ckpt"
 with open(checkpoint, 'rb') as f:
@@ -228,7 +230,7 @@ with open(checkpoint, 'rb') as f:
 cfg = payload['cfg']
 
 
-workspace = TrainDiffusionUnetHybridWorkspace(cfg, output_dir=None)
+workspace = TrainDiffusionTransformerHybridWorkspace(cfg, output_dir=None)
 
 workspace.load_payload(payload, exclude_keys=None, include_keys=None)
 
@@ -261,12 +263,6 @@ from rlbench.action_modes.gripper_action_modes import Discrete
 from rlbench.environment import Environment
 from rlbench.tasks import ReachBlueBlock
 from scipy.spatial.transform import Rotation as R
-
-from pyrep.objects.shape import Shape
-from pyrep.objects.proximity_sensor import ProximitySensor
-from rlbench.backend.task import Task
-from rlbench.backend.conditions import DetectedCondition
-
 
 headless_val = False
 obs_config = ObservationConfig()
@@ -319,8 +315,6 @@ if obs_env is not None:
     obs = framestacker.reset(obs)
 
 
-    
-
 done = False
 success = False
 step = 0
@@ -360,6 +354,7 @@ with open('actions.txt', 'w') as file:
             step += 1
             # A simple termination condition: you can add your own task success logic.
             if step >= max_steps:
+                print("execeded_max steps")
                 done = True
 
 
