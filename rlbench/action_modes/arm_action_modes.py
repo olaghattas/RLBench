@@ -282,7 +282,6 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
     def action_shape(self, scene: Scene) -> tuple:
         return 7,
 
-
 class EndEffectorPoseViaIK(ArmActionMode):
     """High-level action where target pose is given and reached via IK.
 

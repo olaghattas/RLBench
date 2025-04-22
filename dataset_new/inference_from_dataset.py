@@ -8,7 +8,8 @@ from rlbench.tasks import ReachBlueBlock
 from scipy.spatial.transform import Rotation as R
 import pickle
 
-file_path_ = "/home/olagh48652/RLBench/dataset_new/reach_blue_block_5/variation0/episodes/episode0/low_dim_obs.pkl"
+file_path_ = "/home/olagh/RLBench/dataset/reach_blue_block/variation0/episodes/episode0/low_dim_obs.pkl"
+
 with open(file_path_, 'rb') as file:
     data = pickle.load(file)
 
@@ -33,22 +34,37 @@ action_mode = MoveArmThenGripper(
 )
 env = Environment(action_mode=action_mode,
                   obs_config=obs_config,
-                 headless=headless_val
-                    )
+                  headless=headless_val
+                )
 env.launch()
 
 task = env.get_task(ReachBlueBlock)
+print(dir(ReachBlueBlock))
+print(dir(task))
+# Check if the success conditions are met
+# success = ReachBlueBlock.check_success()
 
+task_ = task._task
+success = task_.success()
+# Print the result
+print("Success:", success)
 descriptions, obs = task.reset()
 
 # Loop over all instances (observations) in the dataset
 for obs_ in data._observations:
     # Extract the gripper matrix (it is a 4x4 matrix) column major
-    print(f"Available attributes in obs: {dir(obs)}")
+    # print(f"Available attributes in obs: {dir(obs)}")
     gripper_action = 1
     action = np.concatenate([obs_.gripper_pose, [gripper_action]])
     obs, reward, terminate = task.step(action)
+    success = task_.success()
+    print("Success:", success)
+    # for condition in ReachBlueBlock.success_conditions:
+    #     print("Success condition not met")
+    #     if condition.condition_met():
+    #         print("Success condition met! Task completed.")
+    #         done = True
 
-#
+
 print('Done')
 env.shutdown()
