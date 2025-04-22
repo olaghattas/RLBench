@@ -6,7 +6,7 @@ import pickle
 from scipy.spatial.transform import Rotation as R
           
 # Path to output HDF5 file
-file_path = ('reach_100.hdf5')
+file_path = ('reach_red_50.hdf5')
 tasks = ["reach_blue_block", "reach_red_block"]
 path = '/home/olagh48652/RLBench/dataset_new'
 internal_files= "variation0/episodes"
@@ -124,10 +124,10 @@ with h5py.File(file_path, 'w') as f:
 
                     # Convert quaternion to roll, pitch, yaw (RPY)
                     rotation = R.from_quat(quaternion)  # Create rotation object from quaternion
-                    rpy = rotation.as_euler('xyz', degrees=False)  # Convert to roll-pitch-yaw
+                    rot_vec = rotation.as_rotvec()
 
                     # Combine position, RPY, and gripper action into one action vector
-                    abs_action = np.concatenate([position, rpy, [gripper_state]])
+                    abs_action = np.concatenate([position, rot_vec, [gripper_state]])
                     abs_actions_list.append(abs_action)
                 
                 # Update previous joint positions

@@ -231,6 +231,12 @@ from rlbench.environment import Environment
 from rlbench.tasks import ReachBlueBlock
 from scipy.spatial.transform import Rotation as R
 
+from pyrep.objects.shape import Shape
+from pyrep.objects.proximity_sensor import ProximitySensor
+from rlbench.backend.task import Task
+from rlbench.backend.conditions import DetectedCondition
+
+
 headless_val = False
 obs_config = ObservationConfig()
 
