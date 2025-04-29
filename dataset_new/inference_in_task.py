@@ -41,12 +41,12 @@ for i in range(training_steps):
 
     # Apply action
     obs, reward, terminate = task.step(action)
-    # for condition in ReachBlueBlock.success_conditions:
-    #     print("Success condition not met")
-    #     if condition.condition_met():
-    #         print("Success condition met! Task completed.")
-    #         done = True
-        
+
+    # Check success condition
+    if any(cond.condition_met() for cond in task.success_conditions):
+        print("Success condition met!")
+        break
+
 
 print(done)
 print('Done')
