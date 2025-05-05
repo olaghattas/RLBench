@@ -13,7 +13,7 @@ import rlbench
 # -------------------------------
 # Diffusion Policy Imports
 # -------------------------------
-sys.path.append("/home/olagh/policy_training/diffusion_policy")
+sys.path.append("/home/olagh48652/policy_training/diffusion_policy")
 from diffusion_policy.workspace.train_diffusion_transformer_lang_hybrid_workspace import TrainDiffusionTransformerLangHybridWorkspace
 from diffusion_policy.model.common.rotation_transformer import RotationTransformer
 from diffusion_policy.common.pytorch_util import dict_apply
@@ -207,9 +207,9 @@ print(" Loading Checkpoint ")
 print("-"*40)
 
 # checkpoint = "/home/olagh/RLBench/dataset_new/epoch_100.ckpt"
-checkpoint = "/home/olagh/policy_training/diffusion_policy/diffusion_policy/data/outputs/training_with_no_lang_2layer_transformer_encoder/checkpoints/after_train_600_epochs.ckpt"
+# checkpoint = "/home/olagh/policy_training/diffusion_policy/diffusion_policy/data/outputs/training_with_no_lang_2layer_transformer_encoder/checkpoints/after_train_600_epochs.ckpt"
 
-
+checkpoint = "/home/olagh48652/RLBench/dataset_new/fixed_after_train_600_epochs.ckpt"
 # checkpoint = "/home/olagh/after_train_600_epochs.ckpt"
 with open(checkpoint, 'rb') as f:
     payload = torch.load(f, pickle_module=dill)

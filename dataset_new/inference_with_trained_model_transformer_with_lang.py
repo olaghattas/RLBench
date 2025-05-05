@@ -12,7 +12,6 @@ import cv2
 # Diffusion Policy Imports
 # -------------------------------
 sys.path.append("/home/olagh/policy_training/diffusion_policy")
-from diffusion_policy.workspace.train_diffusion_transformer_hybrid_workspace import TrainDiffusionTransformerHybridWorkspace
 from diffusion_policy.workspace.train_diffusion_transformer_lang_hybrid_workspace import TrainDiffusionTransformerLangHybridWorkspace
 from diffusion_policy.model.common.rotation_transformer import RotationTransformer
 from diffusion_policy.common.pytorch_util import dict_apply

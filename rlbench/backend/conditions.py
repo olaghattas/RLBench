@@ -46,9 +46,14 @@ class DetectedCondition(Condition):
         self._obj = obj
         self._detector = detector
         self._negated = negated
+        print("DetectedCondition")
 
     def condition_met(self):
         met = self._detector.is_detected(self._obj)
+        # print("self._detector", self._detector)
+        # print("self._obj", self._obj)
+        # print("met", met)
+        
         if self._negated:
             met = not met
         return met, False

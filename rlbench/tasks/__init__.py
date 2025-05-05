@@ -1,3 +1,6 @@
+from rlbench.tasks.reach_grocery import ReachGrocery
+from rlbench.tasks.reach_coffee import ReachCoffee
+from rlbench.tasks.reach_blue_red import ReachBlueRed
 from rlbench.tasks.reach_blue_block import ReachBlueBlock
 from rlbench.tasks.reach_red_block import ReachRedBlock
 from rlbench.tasks.basketball_in_hoop import BasketballInHoop

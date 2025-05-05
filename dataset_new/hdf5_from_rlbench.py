@@ -6,7 +6,7 @@ import pickle
 from scipy.spatial.transform import Rotation as R
           
 # Path to output HDF5 file
-file_path = ('reach_red_50.hdf5')
+file_path = ('reach_100_fixed.hdf5')
 tasks = ["reach_blue_block", "reach_red_block"]
 path = '/home/olagh48652/RLBench/dataset_new'
 internal_files= "variation0/episodes"

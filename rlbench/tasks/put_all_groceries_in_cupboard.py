@@ -40,6 +40,7 @@ class PutAllGroceriesInCupboard(Task):
         self.groceries_placed = 0
 
     def init_episode(self, index: int) -> List[str]:
+        print("init episode")
         self.groceries_placed = 0
         self.boundary.clear()
         [self.boundary.sample(g, min_distance=0.15) for g in self.groceries]
